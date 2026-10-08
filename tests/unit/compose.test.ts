@@ -1,0 +1,137 @@
+import { describe, it, expect } from 'vitest';
+import { generateComposeFile } from '../../src/docker/compose.js';
+import { getDefaultConfig } from '../../src/config/defaults.js';
+import { GeneratedEnv } from '../../src/config/schema.js';
+import { load as yamlLoad } from 'js-yaml';
+
+const mockEnv: GeneratedEnv = {
+  POSTGRES_PASSWORD: 'test-password-123',
+  API_SECRET_KEY: 'test-api-key-456',
+  N8N_ENCRYPTION_KEY: 'test-n8n-key-789',
+};
+
+describe('Docker Compose Generator', () => {
+  describe('Minimal preset', () => {
+    it('should generate valid YAML', () => {
+      const config = getDefaultConfig('minimal');
+      const yaml = generateComposeFile(config, mockEnv);
+      expect(() => yamlLoad(yaml)).not.toThrow();
+    });
+
+    it('should include only Ollama and Open WebUI services', () => {
+      const config = getDefaultConfig('minimal');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, unknown>;
+      expect(Object.keys(services)).toEqual(['ollama', 'openwebui']);
+    });
+
+    it('should bind to localhost by default', () => {
+      const config = getDefaultConfig('minimal');
+      const yaml = generateComposeFile(config, mockEnv);
+      expect(yaml).toContain('127.0.0.1:');
+    });
+
+    it('should not include GPU config by default', () => {
+      const config = getDefaultConfig('minimal');
+      const yaml = generateComposeFile(config, mockEnv);
+      expect(yaml).not.toContain('nvidia');
+      expect(yaml).not.toContain('deploy');
+    });
+  });
+
+  describe('Standard preset', () => {
+    it('should include all standard services', () => {
+      const config = getDefaultConfig('standard');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, unknown>;
+      expect(Object.keys(services)).toContain('ollama');
+      expect(Object.keys(services)).toContain('openwebui');
+      expect(Object.keys(services)).toContain('postgres');
+      expect(Object.keys(services)).toContain('qdrant');
+      expect(Object.keys(services)).toContain('api');
+      expect(Object.keys(services)).not.toContain('n8n');
+    });
+
+    it('should not expose postgres to host', () => {
+      const config = getDefaultConfig('standard');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, { ports?: string[] }>;
+      expect(services.postgres.ports).toBeUndefined();
+    });
+
+    it('should set up service dependencies', () => {
+      const config = getDefaultConfig('standard');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, { depends_on?: Record<string, unknown> }>;
+      expect(services.openwebui.depends_on).toHaveProperty('ollama');
+      expect(services.api.depends_on).toHaveProperty('ollama');
+      expect(services.api.depends_on).toHaveProperty('postgres');
+    });
+
+    it('should include health checks', () => {
+      const config = getDefaultConfig('standard');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, { healthcheck?: unknown }>;
+      expect(services.ollama.healthcheck).toBeDefined();
+      expect(services.postgres.healthcheck).toBeDefined();
+      expect(services.qdrant.healthcheck).toBeDefined();
+    });
+  });
+
+  describe('Full preset', () => {
+    it('should include n8n', () => {
+      const config = getDefaultConfig('full');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, unknown>;
+      expect(Object.keys(services)).toContain('n8n');
+    });
+  });
+
+  describe('GPU support', () => {
+    it('should add NVIDIA GPU reservation when enabled', () => {
+      const config = getDefaultConfig('minimal');
+      config.services.ollama.gpuEnabled = true;
+      const yaml = generateComposeFile(config, mockEnv);
+      expect(yaml).toContain('nvidia');
+      expect(yaml).toContain('gpu');
+    });
+  });
+
+  describe('Volumes', () => {
+    it('should define volumes for all data-persistent services', () => {
+      const config = getDefaultConfig('full');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const volumes = parsed.volumes as Record<string, unknown>;
+      expect(volumes).toHaveProperty('ollama-data');
+      expect(volumes).toHaveProperty('openwebui-data');
+      expect(volumes).toHaveProperty('postgres-data');
+      expect(volumes).toHaveProperty('qdrant-data');
+      expect(volumes).toHaveProperty('n8n-data');
+    });
+  });
+
+  describe('Network', () => {
+    it('should define a bridge network', () => {
+      const config = getDefaultConfig('minimal');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const networks = parsed.networks as Record<string, { driver: string }>;
+      expect(networks['local-ai-network']).toEqual({ driver: 'bridge' });
+    });
+  });
+
+  describe('Header comment', () => {
+    it('should include a generated-by comment', () => {
+      const config = getDefaultConfig('minimal');
+      const yaml = generateComposeFile(config, mockEnv);
+      expect(yaml).toContain('Generated by local-ai-stack');
+    });
+  });
+});

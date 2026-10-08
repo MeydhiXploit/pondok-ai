@@ -1,0 +1,89 @@
+import { QdrantClient } from '@qdrant/js-client-rest';
+import OpenAI from 'openai';
+
+const COLLECTION_NAME = 'kb_documents';
+const EMBED_MODEL = process.env.EMBED_MODEL ?? 'nomic-embed-text';
+
+const openai = new OpenAI({
+  baseURL: process.env.LOCAL_AI_BASE_URL ?? 'http://localhost:8000/v1',
+  apiKey: 'local',
+});
+
+const qdrant = new QdrantClient({
+  url: process.env.QDRANT_URL ?? 'http://localhost:6333',
+});
+
+const SAMPLE_DOCS = [
+  {
+    id: 1,
+    title: 'Local AI Stack Philosophy',
+    content: 'local-ai-stack is an open-source platform designed to run LLMs, vector search, and databases locally with zero telemetry.',
+  },
+  {
+    id: 2,
+    title: 'Model Quantization',
+    content: 'Quantization reduces the precision of LLM weights (e.g. from 16-bit to 4-bit), allowing 7B and 8B models to run comfortably on standard laptops.',
+  },
+  {
+    id: 3,
+    title: 'Vector Databases in RAG',
+    content: 'Vector databases like Qdrant index embeddings and perform cosine distance similarity search to provide context to LLM prompts.',
+  },
+];
+
+async function main() {
+  console.log(`Connecting to Qdrant...`);
+
+  // Ensure collection exists
+  const collections = await qdrant.getCollections();
+  const exists = collections.collections.some((c) => c.name === COLLECTION_NAME);
+
+  if (exists) {
+    console.log(`Deleting existing collection '${COLLECTION_NAME}'...`);
+    await qdrant.deleteCollection(COLLECTION_NAME);
+  }
+
+  // Generate first embedding to determine vector dimension
+  console.log(`Embedding sample document with ${EMBED_MODEL}...`);
+  const probeResponse = await openai.embeddings.create({
+    model: EMBED_MODEL,
+    input: SAMPLE_DOCS[0].content,
+  });
+  const vectorDim = probeResponse.data[0].embedding.length;
+  console.log(`Detected vector dimensionality: ${vectorDim}`);
+
+  console.log(`Creating collection '${COLLECTION_NAME}'...`);
+  await qdrant.createCollection(COLLECTION_NAME, {
+    vectors: { size: vectorDim, distance: 'Cosine' },
+  });
+
+  console.log(`Ingesting documents...`);
+  for (const doc of SAMPLE_DOCS) {
+    const embedRes = await openai.embeddings.create({
+      model: EMBED_MODEL,
+      input: doc.content,
+    });
+
+    const vector = embedRes.data[0].embedding;
+
+    await qdrant.upsert(COLLECTION_NAME, {
+      wait: true,
+      points: [
+        {
+          id: doc.id,
+          vector,
+          payload: {
+            title: doc.title,
+            content: doc.content,
+          },
+        },
+      ],
+    });
+
+    console.log(`✓ Indexed: "${doc.title}"`);
+  }
+
+  console.log('\nIngestion complete! Run "npm run query" to test semantic search + RAG.');
+}
+
+main().catch(console.error);

@@ -1,0 +1,41 @@
+import OpenAI from 'openai';
+
+// Initialize the OpenAI client pointing to our local API gateway
+const client = new OpenAI({
+  baseURL: process.env.LOCAL_AI_BASE_URL ?? 'http://localhost:8000/v1',
+  apiKey: process.env.LOCAL_AI_API_KEY ?? 'local-ai-key',
+});
+
+async function main() {
+  console.log('--- 1. Fetching models from local gateway ---');
+  try {
+    const models = await client.models.list();
+    console.log('Available models:');
+    for (const m of models.data) {
+      console.log(`- ${m.id}`);
+    }
+  } catch (err) {
+    console.error('Could not fetch models. Is local-ai-stack running?', err);
+  }
+
+  console.log('\n--- 2. Sending Chat Completion (Streaming) ---');
+  try {
+    const stream = await client.chat.completions.create({
+      model: 'llama3.2:3b',
+      messages: [
+        { role: 'system', content: 'You are a concise, helpful assistant.' },
+        { role: 'user', content: 'Why is running AI locally beneficial for privacy?' },
+      ],
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      process.stdout.write(chunk.choices[0]?.delta?.content || '');
+    }
+    console.log('\n\nDone!');
+  } catch (err) {
+    console.error('Chat completion failed:', err);
+  }
+}
+
+main();

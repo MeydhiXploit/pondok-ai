@@ -1,0 +1,21 @@
+{
+  "name": "local-ai-stack-api",
+  "version": "0.1.0",
+  "description": "OpenAI-compatible API gateway for local-ai-stack",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1",
+    "@fastify/cors": "^9.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^20.17.6",
+    "tsx": "^4.19.2"
+  }
+}

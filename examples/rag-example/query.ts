@@ -1,0 +1,65 @@
+import { QdrantClient } from '@qdrant/js-client-rest';
+import OpenAI from 'openai';
+
+const COLLECTION_NAME = 'kb_documents';
+const EMBED_MODEL = process.env.EMBED_MODEL ?? 'nomic-embed-text';
+const CHAT_MODEL = process.env.CHAT_MODEL ?? 'llama3.2:3b';
+
+const openai = new OpenAI({
+  baseURL: process.env.LOCAL_AI_BASE_URL ?? 'http://localhost:8000/v1',
+  apiKey: 'local',
+});
+
+const qdrant = new QdrantClient({
+  url: process.env.QDRANT_URL ?? 'http://localhost:6333',
+});
+
+async function runRAGQuery(userQuestion: string) {
+  console.log(`\nUser Question: "${userQuestion}"`);
+
+  // 1. Embed user query
+  console.log(`Embedding query with ${EMBED_MODEL}...`);
+  const queryEmbedding = await openai.embeddings.create({
+    model: EMBED_MODEL,
+    input: userQuestion,
+  });
+  const vector = queryEmbedding.data[0].embedding;
+
+  // 2. Search Qdrant for top relevant documents
+  console.log(`Searching Qdrant collection...`);
+  const searchResults = await qdrant.search(COLLECTION_NAME, {
+    vector,
+    limit: 2,
+    with_payload: true,
+  });
+
+  const contextText = searchResults
+    .map((res, i) => `[Source ${i + 1} - ${res.payload?.title}]: ${res.payload?.content}`)
+    .join('\n\n');
+
+  console.log(`\nRetrieved Context:\n${contextText}\n`);
+
+  // 3. Synthesize answer with LLM using retrieved context
+  console.log(`Synthesizing answer with ${CHAT_MODEL}...`);
+  const completion = await openai.chat.completions.create({
+    model: CHAT_MODEL,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a knowledgeable assistant. Answer the user prompt strictly based on the provided retrieved context.',
+      },
+      {
+        role: 'user',
+        content: `Context:\n${contextText}\n\nQuestion: ${userQuestion}`,
+      },
+    ],
+    temperature: 0.2,
+  });
+
+  console.log('\n--- Answer ---');
+  console.log(completion.choices[0].message.content);
+}
+
+const question = process.argv[2] || 'How does quantization help run models on laptops?';
+runRAGQuery(question).catch(console.error);
