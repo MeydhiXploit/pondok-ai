@@ -103,6 +103,8 @@ Secrets and dynamically generated credentials are stored in `.env` (which is aut
 | `POSTGRES_PASSWORD` | Cryptographically random password for the PostgreSQL instance. |
 | `API_SECRET_KEY` | Bearer token secret for the API Gateway. |
 | `CORS_ORIGINS` | Optional comma-separated allowlist of browser origins for the API Gateway. Empty by default. |
+| `RATE_LIMIT_MAX_REQUESTS` | Maximum authenticated `/v1/*` requests per source IP in each fixed window. Defaults to `120`. |
+| `RATE_LIMIT_WINDOW_MS` | API Gateway rate-limit window duration in milliseconds. Defaults to `60000` (one minute). |
 | `N8N_ENCRYPTION_KEY` | 32-character encryption key for n8n credentials storage. |
 
 ---

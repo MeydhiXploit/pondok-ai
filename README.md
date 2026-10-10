@@ -158,6 +158,8 @@ The API Gateway provides drop-in OpenAI REST endpoints:
 
 Set `LOCAL_AI_API_KEY` to the generated `API_SECRET_KEY` before calling a `/v1/*` endpoint.
 
+The gateway limits authenticated `/v1/*` requests per source IP to 120 requests per minute by default. Configure `RATE_LIMIT_MAX_REQUESTS` and `RATE_LIMIT_WINDOW_MS` in `.env` if your local client needs different limits.
+
 ```bash
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \

@@ -21,6 +21,8 @@ Set an application-specific environment variable such as `LOCAL_AI_API_KEY` to t
 
 The gateway accepts `Host` headers for `localhost`, `127.0.0.1`, and the internal Docker service name `api` only. Browser access is disabled by default; set `CORS_ORIGINS` to a comma-separated allowlist of complete origins when it is needed.
 
+Authenticated `/v1/*` requests are rate-limited per source IP. The default is `120` requests per `60000` milliseconds; adjust `RATE_LIMIT_MAX_REQUESTS` and `RATE_LIMIT_WINDOW_MS` in `.env` if needed. `/health` and CORS preflight requests are not counted.
+
 ---
 
 ## Endpoints

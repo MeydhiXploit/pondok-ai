@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Configurable in-memory, per-source-IP rate limiting for authenticated API Gateway `/v1/*` requests.
+
 ### Changed
 - Pinned service and gateway build images to explicit versions. `update` now refreshes configured pins; `update --upgrade-images` migrates legacy default tags without overwriting custom image values.
 
