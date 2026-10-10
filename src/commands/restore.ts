@@ -20,7 +20,7 @@ interface RestoreOptions {
 
 export function createRestoreCommand(): Command {
   const cmd = new Command('restore')
-    .description('Restore stack configuration and persistent data from a backup with integrity validation')
+    .description('Restore stack configuration and persistent data from a SHA-256 integrity-checked backup (not encrypted)')
     .argument('<backup-path>', 'Path to the backup directory')
     .option('-d, --dir <directory>', 'Working directory', process.cwd())
     .option('--verify-only', 'Validate backup integrity without restoring files')

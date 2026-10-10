@@ -27,7 +27,7 @@ interface BackupOptions {
 
 export function createBackupCommand(): Command {
   const cmd = new Command('backup')
-    .description('Backup stack configuration and persistent data volumes with integrity validation')
+    .description('Backup stack configuration and persistent data volumes with SHA-256 integrity checks (not encrypted)')
     .option('-d, --dir <directory>', 'Working directory', process.cwd())
     .option('-o, --output <path>', 'Output backup directory')
     .option('--include-models', 'Include large Ollama model weights in the backup', false)
@@ -165,7 +165,7 @@ export async function runBackup(options: BackupOptions): Promise<string> {
     }
     console.log();
 
-    showSuccess('Backup completed and verified with SHA-256 checksums.');
+    showSuccess('Backup completed with SHA-256 integrity checks (not encrypted).');
     return targetDir;
   } catch (error) {
     spinner.fail('Backup failed');

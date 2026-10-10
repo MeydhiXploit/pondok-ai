@@ -136,8 +136,8 @@ npx local-ai-stack model install llama3.2:3b
 | `local-ai-stack logs [service]` | View logs (`-f` to stream) |
 | `local-ai-stack doctor` | Diagnose Docker, RAM, GPU/VRAM, ports, and model recommendations |
 | `local-ai-stack update` | Safe update with automated pre-update backup and health checks |
-| `local-ai-stack backup` | Backup configs and data volumes with SHA-256 integrity manifest |
-| `local-ai-stack restore <path>` | Restore from backup with cryptographic SHA-256 verification |
+| `local-ai-stack backup` | Backup configs and data volumes with SHA-256 integrity checks (not encrypted) |
+| `local-ai-stack restore <path>` | Restore from a SHA-256 integrity-checked backup (not encrypted) |
 | `local-ai-stack reset` | Reset stack (preserves volumes unless `--delete-data` is specified) |
 | `local-ai-stack config` | Inspect or edit active configuration |
 | `local-ai-stack model list` | List downloaded models |

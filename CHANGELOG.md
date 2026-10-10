@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- Corrected backup and restore documentation: backups are integrity-checked with SHA-256, are not encrypted, and do not provide cryptographic authenticity guarantees.
+
+---
+
 ## [0.1.0] - 2026-10-09
 
 ### Added

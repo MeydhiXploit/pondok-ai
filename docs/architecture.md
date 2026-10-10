@@ -45,7 +45,7 @@ Built with TypeScript and Commander.js, compiled to ESM using `tsup`.
 - **Configuration Manager (`src/config/`)**: Reads and manages `local-ai-stack.json` and `.env` in the current workspace or home directory, enforcing strict Unix permissions (`chmod 0600`).
 - **Docker Compose Generator & Validator (`src/docker/`)**: Generates deterministic, type-safe `docker-compose.yml` dynamically and validates Compose configuration syntax before boot.
 - **Service Health Diagnostics (`src/docker/health.ts`)**: Proactively polls HTTP health endpoints with timeouts and progressive terminal spinners before marking stack ready.
-- **Lifecycle & Backup Engine (`src/commands/backup.ts`, `src/commands/restore.ts`)**: Performs reproducible configuration and Docker volume archives secured with cryptographic SHA-256 manifests.
+- **Lifecycle & Backup Engine (`src/commands/backup.ts`, `src/commands/restore.ts`)**: Performs reproducible configuration and Docker volume archives that are integrity-checked with SHA-256 (not encrypted).
 - **Model Management (`src/commands/model.ts`)**: Direct lifecycle management for Ollama models with pre-install hardware fit checks and recommendation intelligence.
 
 ### 2. Service Presets
@@ -73,5 +73,5 @@ Security and user data safety are core architectural pillars:
 - **Credential Protection**: The generated `.env` file containing secrets is restricted to `0600` permissions (`u=rw,go=`) on Unix systems.
 - **Network Isolation**: Databases (PostgreSQL, Qdrant) communicate inside the private Docker network (`local-ai-network`) and do not expose ports to the host by default unless explicitly configured.
 - **Data Preservation Guarantee**: Container reset operations (`reset` command) preserve persistent storage volumes by default. Deleting volumes requires both an explicit `--delete-data` flag and double user confirmation.
-- **Cryptographic Backup Integrity**: Backups verify file and volume tarballs against SHA-256 checksums before restore, protecting against partial copies or corruption.
+- **Backup Integrity Checks**: Backups verify file and volume tarballs against SHA-256 checksums before restore to detect partial copies or corruption. Backups are not encrypted, and the manifest does not provide cryptographic authenticity.
 - **Zero Cloud Leakage**: No telemetry, analytics, or outbound model queries are sent to third parties. All inference happens strictly on device.
