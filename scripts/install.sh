@@ -32,14 +32,17 @@ echo -e "  Operating System: ${GREEN}${OS} (${ARCH})${NC}"
 if command -v node >/dev/null 2>&1; then
   NODE_VER=$(node -v | sed 's/v//')
   NODE_MAJOR=$(echo "$NODE_VER" | cut -d. -f1)
-  if [ "$NODE_MAJOR" -ge 18 ]; then
+  if [ "$NODE_MAJOR" -ge 22 ]; then
     echo -e "  Node.js:          ${GREEN}v${NODE_VER}${NC}"
   else
-    echo -e "  Node.js:          ${YELLOW}v${NODE_VER} (Warning: Node.js 18+ recommended)${NC}"
+    echo -e "  Node.js:          ${RED}v${NODE_VER} (Node.js 22+ required)${NC}"
+    echo -e "${RED}Error: Node.js (v22+) is required to run local-ai-stack.${NC}"
+    echo -e "Please install Node.js from: https://nodejs.org/"
+    exit 1
   fi
 else
   echo -e "  Node.js:          ${RED}Not installed${NC}"
-  echo -e "${RED}Error: Node.js (v18+) is required to run local-ai-stack.${NC}"
+  echo -e "${RED}Error: Node.js (v22+) is required to run local-ai-stack.${NC}"
   echo -e "Please install Node.js from: https://nodejs.org/"
   exit 1
 fi

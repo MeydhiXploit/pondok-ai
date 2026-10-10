@@ -12,7 +12,7 @@ Please review and adhere to our [Code of Conduct](./CODE_OF_CONDUCT.md) in all i
 ## Development Setup
 
 ### Prerequisites
-- Node.js >= 18.0.0
+- Node.js >= 22
 - npm >= 9.0.0
 - Docker and Docker Compose v2
 

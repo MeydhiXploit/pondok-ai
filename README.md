@@ -91,6 +91,8 @@ iwr -useb https://raw.githubusercontent.com/rasidi3112/local-ai-stack/main/scrip
 
 ### Manual Quickstart via npx
 
+Prerequisites: Node.js 22 or later, Docker, and Docker Compose v2.
+
 #### 1. Initialize the stack
 ```bash
 # Interactive setup wizard with hardware auto-detection

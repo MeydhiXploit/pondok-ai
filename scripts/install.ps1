@@ -17,14 +17,17 @@ Write-Host "Checking prerequisites..." -ForegroundColor White
 try {
     $nodeVer = (node -v).TrimStart('v')
     $major = [int]($nodeVer.Split('.')[0])
-    if ($major -ge 18) {
+    if ($major -ge 22) {
         Write-Host "  Node.js:          v$nodeVer" -ForegroundColor Green
     } else {
-        Write-Host "  Node.js:          v$nodeVer (Warning: Node.js 18+ recommended)" -ForegroundColor Yellow
+        Write-Host "  Node.js:          v$nodeVer (Node.js 22+ required)" -ForegroundColor Red
+        Write-Host "Error: Node.js (v22+) is required to run local-ai-stack." -ForegroundColor Red
+        Write-Host "Please install Node.js from https://nodejs.org/" -ForegroundColor Yellow
+        exit 1
     }
 } catch {
     Write-Host "  Node.js:          Not installed" -ForegroundColor Red
-    Write-Host "Error: Node.js (v18+) is required to run local-ai-stack." -ForegroundColor Red
+    Write-Host "Error: Node.js (v22+) is required to run local-ai-stack." -ForegroundColor Red
     Write-Host "Please install Node.js from https://nodejs.org/" -ForegroundColor Yellow
     exit 1
 }
