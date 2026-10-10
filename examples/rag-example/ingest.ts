@@ -22,7 +22,7 @@ const SAMPLE_DOCS = [
   {
     id: 1,
     title: 'Local AI Stack Philosophy',
-    content: 'local-ai-stack is an open-source platform designed to run LLMs, vector search, and databases locally with zero telemetry.',
+    content: 'local-ai-stack is an open-source platform designed to run LLMs, vector search, and databases locally.',
   },
   {
     id: 2,

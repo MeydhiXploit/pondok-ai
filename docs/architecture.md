@@ -74,4 +74,4 @@ Security and user data safety are core architectural pillars:
 - **Network Isolation**: Databases (PostgreSQL, Qdrant) communicate inside the private Docker network (`local-ai-network`) and do not expose ports to the host by default unless explicitly configured.
 - **Data Preservation Guarantee**: Container reset operations (`reset` command) preserve persistent storage volumes by default. Deleting volumes requires both an explicit `--delete-data` flag and double user confirmation.
 - **Backup Integrity Checks**: Backups verify file and volume tarballs against SHA-256 checksums before restore to detect partial copies or corruption. Backups are not encrypted, and the manifest does not provide cryptographic authenticity.
-- **Zero Cloud Leakage**: No telemetry, analytics, or outbound model queries are sent to third parties. All inference happens strictly on device.
+- **Local Processing**: Prompts, chats, and embeddings are processed on the user's machine. Pulling container images and model weights requires internet access.

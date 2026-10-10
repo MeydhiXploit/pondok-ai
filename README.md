@@ -20,7 +20,7 @@
 
 `local-ai-stack` is a developer-friendly, zero-friction CLI and container orchestration toolkit that boots a complete, private AI environment directly on your local workstation.
 
-Powered by **Docker Compose v2**, `local-ai-stack` gives you local LLMs, chat UI, vector search, database persistence, and an OpenAI-compatible API gateway in seconds — with **no cloud dependencies** and **no data leakage**.
+Powered by **Docker Compose v2**, `local-ai-stack` gives you local LLMs, chat UI, vector search, database persistence, and an OpenAI-compatible API gateway in seconds. Prompts, chats, and embeddings are processed on your machine; pulling container images and model weights requires an internet connection.
 
 ```bash
 npx local-ai-stack init
@@ -31,7 +31,7 @@ npx local-ai-stack up
 
 ## Features
 
--  **100% Private & Local-First**: Inference, prompts, vector embeddings, and chats remain on your hardware.
+-  **Local Processing**: Prompts, chats, embeddings, and inference run on your hardware. Initial container image pulls and model downloads require internet access.
 - ⚡ **Zero Setup Friction**: Automatically detects OS, architecture, RAM, and GPU (Apple Metal / NVIDIA CUDA).
 -  **Modular Presets**: Scale from a lightweight chat interface (`minimal`) to an enterprise RAG stack (`standard`) or an autonomous automation pipeline (`full`).
 -  **OpenAI-Compatible Gateway**: Point standard OpenAI SDKs or LangChain directly to `http://localhost:8000/v1` with zero code rewrites.
