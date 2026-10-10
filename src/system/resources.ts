@@ -1,9 +1,17 @@
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
-import { basename, dirname } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 function getGatewaySourceDirectory(): string {
-  return fileURLToPath(new URL('../api/', import.meta.url));
+  const runtimeDirectory = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    // Packaged CLI: dist/index.js -> api/
+    join(runtimeDirectory, '../api'),
+    // Source checkout: src/system/resources.ts -> api/
+    join(runtimeDirectory, '../../api'),
+  ];
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
 }
 
 /**
