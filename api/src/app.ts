@@ -60,7 +60,7 @@ function getTimeoutMs(value: number | undefined): number {
 }
 
 export async function buildApp(options: GatewayOptions = {}): Promise<FastifyInstance> {
-  const corsOrigins = parseCorsOrigins(options.corsOrigins ?? '');
+  const corsOrigins = parseCorsOrigins(options.corsOrigins ?? process.env.CORS_ORIGINS ?? '');
   const app = Fastify({
     logger:
       options.logger === false

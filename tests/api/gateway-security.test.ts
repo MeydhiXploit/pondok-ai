@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../api/src/app.js';
 
 const API_SECRET_KEY = 'test-api-secret';
+const originalCorsOrigins = process.env.CORS_ORIGINS;
 
 let app: Awaited<ReturnType<typeof buildApp>> | undefined;
 
@@ -25,6 +26,11 @@ afterEach(async () => {
   await app?.close();
   app = undefined;
   vi.unstubAllGlobals();
+  if (originalCorsOrigins === undefined) {
+    delete process.env.CORS_ORIGINS;
+  } else {
+    process.env.CORS_ORIGINS = originalCorsOrigins;
+  }
 });
 
 describe('API gateway security', () => {
@@ -164,6 +170,30 @@ describe('API gateway security', () => {
 
     expect(disallowedResponse.statusCode).toBe(200);
     expect(disallowedResponse.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
+  it('reads the CORS allowlist from the gateway environment', async () => {
+    process.env.CORS_ORIGINS = 'https://env-client.example';
+    mockOllama(
+      new Response(JSON.stringify({ models: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    const gateway = await createGateway();
+
+    const response = await gateway.inject({
+      method: 'GET',
+      url: '/v1/models',
+      headers: {
+        authorization: `Bearer ${API_SECRET_KEY}`,
+        host: 'localhost:8000',
+        origin: 'https://env-client.example',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['access-control-allow-origin']).toBe('https://env-client.example');
   });
 
   it('allows an allowlisted CORS preflight without an API key', async () => {
