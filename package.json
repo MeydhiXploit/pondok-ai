@@ -4,7 +4,7 @@
   "description": "Run your own private AI stack locally with one command.",
   "type": "module",
   "bin": {
-    "local-ai-stack": "./dist/index.js"
+    "local-ai-stack": "dist/index.js"
   },
   "main": "./dist/index.js",
   "scripts": {
