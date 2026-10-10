@@ -162,4 +162,21 @@ describe('API gateway security', () => {
     expect(disallowedResponse.statusCode).toBe(200);
     expect(disallowedResponse.headers['access-control-allow-origin']).toBeUndefined();
   });
+
+  it('allows an allowlisted CORS preflight without an API key', async () => {
+    const gateway = await createGateway('https://client.example');
+
+    const response = await gateway.inject({
+      method: 'OPTIONS',
+      url: '/v1/models',
+      headers: {
+        host: 'localhost:8000',
+        origin: 'https://client.example',
+        'access-control-request-method': 'GET',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('https://client.example');
+  });
 });

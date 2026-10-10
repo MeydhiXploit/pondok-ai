@@ -84,6 +84,11 @@ export async function buildApp(options: GatewayOptions = {}): Promise<FastifyIns
       return;
     }
 
+    // Browser preflight requests cannot carry the eventual Authorization header.
+    if (request.method === 'OPTIONS') {
+      return;
+    }
+
     if (!hasValidBearerToken(request.headers.authorization, app.config.apiSecretKey)) {
       return reply.status(401).send({
         error: {
