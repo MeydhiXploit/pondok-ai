@@ -35,7 +35,7 @@
     "vector-database",
     "qdrant"
   ],
-  "author": "",
+  "author": "rasidi3112 (https://github.com/rasidi3112)",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
