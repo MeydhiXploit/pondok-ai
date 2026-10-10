@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { createOpenAiError } from '../errors.js';
 
 interface OllamaModel {
   name: string;
@@ -20,9 +21,15 @@ export async function modelsRoute(app: FastifyInstance): Promise<void> {
       const response = await fetch(`${app.config.ollamaBaseUrl}/api/tags`);
 
       if (!response.ok) {
-        return reply.status(502).send({
-          error: { message: 'Failed to fetch models from Ollama', type: 'upstream_error' },
-        });
+        return reply
+          .status(502)
+          .send(
+            createOpenAiError(
+              'Failed to fetch models from Ollama',
+              'upstream_error',
+              'upstream_error',
+            ),
+          );
       }
 
       const data = (await response.json()) as { models: OllamaModel[] };
@@ -43,9 +50,9 @@ export async function modelsRoute(app: FastifyInstance): Promise<void> {
       });
     } catch (error) {
       app.log.error(error, 'Models list error');
-      return reply.status(502).send({
-        error: { message: 'Failed to connect to Ollama', type: 'upstream_error' },
-      });
+      return reply
+        .status(502)
+        .send(createOpenAiError('Failed to connect to Ollama', 'upstream_error', 'upstream_error'));
     }
   });
 
@@ -55,9 +62,15 @@ export async function modelsRoute(app: FastifyInstance): Promise<void> {
       const response = await fetch(`${app.config.ollamaBaseUrl}/api/tags`);
 
       if (!response.ok) {
-        return reply.status(502).send({
-          error: { message: 'Failed to fetch models from Ollama', type: 'upstream_error' },
-        });
+        return reply
+          .status(502)
+          .send(
+            createOpenAiError(
+              'Failed to fetch models from Ollama',
+              'upstream_error',
+              'upstream_error',
+            ),
+          );
       }
 
       const data = (await response.json()) as { models: OllamaModel[] };
@@ -71,9 +84,9 @@ export async function modelsRoute(app: FastifyInstance): Promise<void> {
       });
     } catch (error) {
       app.log.error(error, 'Models list error');
-      return reply.status(502).send({
-        error: { message: 'Failed to connect to Ollama', type: 'upstream_error' },
-      });
+      return reply
+        .status(502)
+        .send(createOpenAiError('Failed to connect to Ollama', 'upstream_error', 'upstream_error'));
     }
   });
 }

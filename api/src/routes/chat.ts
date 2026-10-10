@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { createOpenAiError } from '../errors.js';
 
 interface ChatCompletionRequest {
   model: string;
@@ -41,10 +42,7 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
         },
       },
     },
-    async (
-      request: FastifyRequest<{ Body: ChatCompletionRequest }>,
-      reply: FastifyReply,
-    ) => {
+    async (request: FastifyRequest<{ Body: ChatCompletionRequest }>, reply: FastifyReply) => {
       const { model, messages, temperature, max_tokens, top_p, stream } = request.body;
 
       const ollamaUrl = `${app.config.ollamaBaseUrl}/api/chat`;
@@ -71,12 +69,11 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
 
           if (!response.ok) {
             const error = await response.text();
-            return reply.status(response.status).send({
-              error: {
-                message: `Ollama error: ${error}`,
-                type: 'upstream_error',
-              },
-            });
+            return reply
+              .status(response.status)
+              .send(
+                createOpenAiError(`Ollama error: ${error}`, 'upstream_error', 'upstream_error'),
+              );
           }
 
           reply.raw.writeHead(200, {
@@ -87,7 +84,9 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
 
           const reader = response.body?.getReader();
           if (!reader) {
-            return reply.status(500).send({ error: { message: 'No response body' } });
+            return reply
+              .status(500)
+              .send(createOpenAiError('No response body', 'upstream_error', 'upstream_error'));
           }
 
           const decoder = new TextDecoder();
@@ -142,15 +141,14 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
 
           if (!response.ok) {
             const error = await response.text();
-            return reply.status(response.status).send({
-              error: {
-                message: `Ollama error: ${error}`,
-                type: 'upstream_error',
-              },
-            });
+            return reply
+              .status(response.status)
+              .send(
+                createOpenAiError(`Ollama error: ${error}`, 'upstream_error', 'upstream_error'),
+              );
           }
 
-          const data = await response.json() as {
+          const data = (await response.json()) as {
             message?: { role: string; content: string };
             total_duration?: number;
             prompt_eval_count?: number;
@@ -183,12 +181,15 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
         }
       } catch (error) {
         app.log.error(error, 'Chat completion error');
-        return reply.status(502).send({
-          error: {
-            message: 'Failed to connect to Ollama. Make sure the model is running.',
-            type: 'upstream_error',
-          },
-        });
+        return reply
+          .status(502)
+          .send(
+            createOpenAiError(
+              'Failed to connect to Ollama. Make sure the model is running.',
+              'upstream_error',
+              'upstream_error',
+            ),
+          );
       }
     },
   );

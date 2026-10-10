@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import cors from '@fastify/cors';
 import Fastify, { FastifyInstance } from 'fastify';
+import { createOpenAiError } from './errors.js';
 import { chatCompletionsRoute } from './routes/chat.js';
 import { embeddingsRoute } from './routes/embeddings.js';
 import { healthRoute } from './routes/health.js';
@@ -71,13 +72,11 @@ export async function buildApp(options: GatewayOptions = {}): Promise<FastifyIns
 
   app.addHook('onRequest', async (request, reply) => {
     if (!isAllowedHost(request.headers.host)) {
-      return reply.status(400).send({
-        error: {
-          message: 'Host header is not allowed',
-          type: 'invalid_request_error',
-          code: 'invalid_host',
-        },
-      });
+      return reply
+        .status(400)
+        .send(
+          createOpenAiError('Host header is not allowed', 'invalid_request_error', 'invalid_host'),
+        );
     }
 
     if (!request.url.startsWith('/v1/')) {
@@ -90,13 +89,15 @@ export async function buildApp(options: GatewayOptions = {}): Promise<FastifyIns
     }
 
     if (!hasValidBearerToken(request.headers.authorization, app.config.apiSecretKey)) {
-      return reply.status(401).send({
-        error: {
-          message: 'Invalid or missing API key',
-          type: 'authentication_error',
-          code: 'invalid_api_key',
-        },
-      });
+      return reply
+        .status(401)
+        .send(
+          createOpenAiError(
+            'Invalid or missing API key',
+            'authentication_error',
+            'invalid_api_key',
+          ),
+        );
     }
   });
 
@@ -105,24 +106,38 @@ export async function buildApp(options: GatewayOptions = {}): Promise<FastifyIns
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   });
 
+  app.setErrorHandler((error, _request, reply) => {
+    app.log.error(error);
+
+    const statusCode = error.statusCode ?? 500;
+
+    reply
+      .status(statusCode)
+      .send(
+        createOpenAiError(
+          error.message,
+          statusCode >= 500 ? 'internal_server_error' : 'invalid_request_error',
+          error.code ?? 'internal_error',
+        ),
+      );
+  });
+
   await app.register(healthRoute);
   await app.register(statusRoute);
   await app.register(modelsRoute);
   await app.register(chatCompletionsRoute);
   await app.register(embeddingsRoute);
 
-  app.setErrorHandler((error, _request, reply) => {
-    app.log.error(error);
-
-    const statusCode = error.statusCode ?? 500;
-
-    reply.status(statusCode).send({
-      error: {
-        message: error.message,
-        type: statusCode >= 500 ? 'internal_server_error' : 'invalid_request_error',
-        code: error.code ?? null,
-      },
-    });
+  app.setNotFoundHandler((_request, reply) => {
+    return reply
+      .status(404)
+      .send(
+        createOpenAiError(
+          'The requested endpoint does not exist',
+          'invalid_request_error',
+          'not_found',
+        ),
+      );
   });
 
   return app;
