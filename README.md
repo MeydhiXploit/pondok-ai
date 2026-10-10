@@ -81,12 +81,12 @@ npx local-ai-stack up
 
 #### macOS & Linux
 ```bash
-curl -fsSL https://raw.githubusercontent.com/local-ai-stack/local-ai-stack/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rasidi3112/local-ai-stack/main/scripts/install.sh | bash
 ```
 
 #### Windows (PowerShell)
 ```powershell
-iwr -useb https://raw.githubusercontent.com/local-ai-stack/local-ai-stack/main/scripts/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/rasidi3112/local-ai-stack/main/scripts/install.ps1 | iex
 ```
 
 ### Manual Quickstart via npx

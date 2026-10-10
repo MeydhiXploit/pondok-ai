@@ -19,7 +19,7 @@ Please review and adhere to our [Code of Conduct](./CODE_OF_CONDUCT.md) in all i
 ### Steps
 1. Fork and clone the repository:
    ```bash
-   git clone https://github.com/local-ai-stack/local-ai-stack.git
+   git clone https://github.com/rasidi3112/local-ai-stack.git
    cd local-ai-stack
    ```
 2. Install dependencies:

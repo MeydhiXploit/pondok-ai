@@ -47,11 +47,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/local-ai-stack/local-ai-stack.git"
+    "url": "git+https://github.com/rasidi3112/local-ai-stack.git"
   },
-  "homepage": "https://github.com/local-ai-stack/local-ai-stack",
+  "homepage": "https://github.com/rasidi3112/local-ai-stack",
   "bugs": {
-    "url": "https://github.com/local-ai-stack/local-ai-stack/issues"
+    "url": "https://github.com/rasidi3112/local-ai-stack/issues"
   },
   "dependencies": {
     "boxen": "^8.0.1",
