@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { generateComposeFile } from '../../src/docker/compose.js';
-import { getDefaultConfig } from '../../src/config/defaults.js';
+import {
+  DEFAULT_IMAGES,
+  getDefaultConfig,
+  upgradeLegacyDefaultImages,
+} from '../../src/config/defaults.js';
 import { GeneratedEnv } from '../../src/config/schema.js';
 import { load as yamlLoad } from 'js-yaml';
 
@@ -11,6 +15,39 @@ const mockEnv: GeneratedEnv = {
 };
 
 describe('Docker Compose Generator', () => {
+  describe('Image version pins', () => {
+    it('should use explicit version tags for every remote default image', () => {
+      expect(DEFAULT_IMAGES).toEqual({
+        ollama: 'ollama/ollama:0.40.2',
+        openwebui: 'ghcr.io/open-webui/open-webui:v0.11.4',
+        postgres: 'postgres:16.15-alpine3.24',
+        qdrant: 'qdrant/qdrant:v1.19.2',
+        n8n: 'n8nio/n8n:2.42.6',
+      });
+    });
+
+    it('should upgrade legacy defaults without replacing custom images', () => {
+      const config = getDefaultConfig('full');
+      config.services.ollama.image = 'ollama/ollama:latest';
+      config.services.openwebui.image = 'ghcr.io/open-webui/open-webui:main';
+      config.services.postgres.image = 'postgres:16-alpine';
+      config.services.qdrant.image = 'qdrant/qdrant:latest';
+      config.services.n8n.image = 'custom.registry/n8n:custom';
+
+      expect(upgradeLegacyDefaultImages(config)).toEqual([
+        'ollama',
+        'openwebui',
+        'postgres',
+        'qdrant',
+      ]);
+      expect(config.services.ollama.image).toBe(DEFAULT_IMAGES.ollama);
+      expect(config.services.openwebui.image).toBe(DEFAULT_IMAGES.openwebui);
+      expect(config.services.postgres.image).toBe(DEFAULT_IMAGES.postgres);
+      expect(config.services.qdrant.image).toBe(DEFAULT_IMAGES.qdrant);
+      expect(config.services.n8n.image).toBe('custom.registry/n8n:custom');
+    });
+  });
+
   describe('Minimal preset', () => {
     it('should generate valid YAML', () => {
       const config = getDefaultConfig('minimal');

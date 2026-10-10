@@ -1,5 +1,5 @@
 import { dump as yamlDump } from 'js-yaml';
-import { LEGACY_DEFAULT_API_IMAGE } from '../config/defaults.js';
+import { DEFAULT_IMAGES, LEGACY_DEFAULT_API_IMAGE } from '../config/defaults.js';
 import { GeneratedEnv, StackConfig } from '../config/schema.js';
 
 interface ComposeBuild {
@@ -62,7 +62,7 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
   // Ollama
   if (config.services.ollama.enabled) {
     const ollamaService: ComposeService = {
-      image: config.services.ollama.image ?? 'ollama/ollama:latest',
+      image: config.services.ollama.image ?? DEFAULT_IMAGES.ollama,
       container_name: `${config.projectName}-ollama`,
       restart: 'unless-stopped',
       ports: [`${bind}:${config.services.ollama.port}:11434`],
@@ -101,7 +101,7 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
   // Open WebUI
   if (config.services.openwebui.enabled) {
     const openwebuiService: ComposeService = {
-      image: config.services.openwebui.image ?? 'ghcr.io/open-webui/open-webui:main',
+      image: config.services.openwebui.image ?? DEFAULT_IMAGES.openwebui,
       container_name: `${config.projectName}-openwebui`,
       restart: 'unless-stopped',
       ports: [`${bind}:${config.services.openwebui.port}:8080`],
@@ -122,7 +122,7 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
   // PostgreSQL
   if (config.services.postgres.enabled) {
     compose.services.postgres = {
-      image: config.services.postgres.image ?? 'postgres:16-alpine',
+      image: config.services.postgres.image ?? DEFAULT_IMAGES.postgres,
       container_name: `${config.projectName}-postgres`,
       restart: 'unless-stopped',
       // Postgres is internal — not exposed to host by default
@@ -148,7 +148,7 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
   // Qdrant
   if (config.services.qdrant.enabled) {
     compose.services.qdrant = {
-      image: config.services.qdrant.image ?? 'qdrant/qdrant:latest',
+      image: config.services.qdrant.image ?? DEFAULT_IMAGES.qdrant,
       container_name: `${config.projectName}-qdrant`,
       restart: 'unless-stopped',
       ports: [`${bind}:${config.services.qdrant.port}:6333`],
@@ -219,7 +219,7 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
     }
 
     compose.services.n8n = {
-      image: config.services.n8n.image ?? 'n8nio/n8n:latest',
+      image: config.services.n8n.image ?? DEFAULT_IMAGES.n8n,
       container_name: `${config.projectName}-n8n`,
       restart: 'unless-stopped',
       ports: [`${bind}:${config.services.n8n.port}:5678`],

@@ -137,7 +137,7 @@ npx local-ai-stack model install llama3.2:3b
 | `local-ai-stack status` | Show container health and URLs |
 | `local-ai-stack logs [service]` | View logs (`-f` to stream) |
 | `local-ai-stack doctor` | Diagnose Docker, RAM, GPU/VRAM, ports, and model recommendations |
-| `local-ai-stack update` | Safe update with automated pre-update backup and health checks |
+| `local-ai-stack update` | Re-pull configured pinned images with automated backup and health checks |
 | `local-ai-stack backup` | Backup configs and data volumes with SHA-256 integrity checks (not encrypted) |
 | `local-ai-stack restore <path>` | Restore from a SHA-256 integrity-checked backup (not encrypted) |
 | `local-ai-stack reset` | Reset stack (preserves volumes unless `--delete-data` is specified) |
@@ -147,6 +147,8 @@ npx local-ai-stack model install llama3.2:3b
 | `local-ai-stack model install <name>` | Pull a new model with pre-flight resource safety checks |
 | `local-ai-stack model remove <name>` | Delete an installed model |
 | `local-ai-stack model status` | Inspect model resource footprints |
+
+Images are pinned to explicit versions. `local-ai-stack update` refreshes the configured versions; it does not select newer releases. After installing a newer CLI, run `local-ai-stack update --upgrade-images` to migrate only the CLI's legacy default image tags. Custom image values are preserved.
 
 ---
 

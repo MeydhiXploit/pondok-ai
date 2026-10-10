@@ -76,6 +76,13 @@ describe('CLI Help', () => {
     expect(output).toContain('path');
     expect(output).toContain('edit');
   });
+
+  it('should expose the explicit pinned-image upgrade option', () => {
+    const output = runCli('update --help');
+
+    expect(output).toContain('--upgrade-images');
+    expect(output).toContain('pinned tags');
+  });
 });
 
 describe('CLI Version', () => {

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Pinned service and gateway build images to explicit versions. `update` now refreshes configured pins; `update --upgrade-images` migrates legacy default tags without overwriting custom image values.
+
 ### Fixed
 - Corrected backup and restore documentation: backups are integrity-checked with SHA-256, are not encrypted, and do not provide cryptographic authenticity guarantees.
 

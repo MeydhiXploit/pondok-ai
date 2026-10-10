@@ -121,3 +121,7 @@ local-ai-stack config --edit
 # Diagnose configuration issues
 local-ai-stack doctor
 ```
+
+### Pinned image upgrades
+
+Service images are pinned to explicit versions. `local-ai-stack update` only re-pulls the image versions in the current configuration. After installing a newer CLI release, use `local-ai-stack update --upgrade-images` to migrate the previous CLI defaults to its new pins. Custom image values are not changed.
