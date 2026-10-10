@@ -183,6 +183,7 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
           ? 'postgresql://${POSTGRES_USER:-localaistack}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-localaistack}'
           : '',
         API_SECRET_KEY: '${API_SECRET_KEY}',
+        CORS_ORIGINS: '${CORS_ORIGINS:-}',
         NODE_ENV: 'production',
       },
       networks: ['local-ai-network'],

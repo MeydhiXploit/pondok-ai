@@ -19,6 +19,7 @@ This example demonstrates a complete **Retrieval-Augmented Generation (RAG)** pi
    npx local-ai-stack model install llama3.2:3b
    npx local-ai-stack model install nomic-embed-text
    ```
+3. Set `LOCAL_AI_API_KEY` to the generated `API_SECRET_KEY` for the stack before running the scripts.
 
 ---
 
@@ -28,9 +29,12 @@ This example demonstrates a complete **Retrieval-Augmented Generation (RAG)** pi
 # 1. Install dependencies
 npm install
 
-# 2. Ingest sample documents into Qdrant
+# 2. Provide the gateway credential
+export LOCAL_AI_API_KEY='<your API_SECRET_KEY>'
+
+# 3. Ingest sample documents into Qdrant
 npm run ingest
 
-# 3. Ask questions augmented with retrieved knowledge
+# 4. Ask questions augmented with retrieved knowledge
 npm run query "How does quantization help run models on laptops?"
 ```

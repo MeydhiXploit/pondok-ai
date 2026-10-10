@@ -102,6 +102,7 @@ Secrets and dynamically generated credentials are stored in `.env` (which is aut
 |---|---|
 | `POSTGRES_PASSWORD` | Cryptographically random password for the PostgreSQL instance. |
 | `API_SECRET_KEY` | Bearer token secret for the API Gateway. |
+| `CORS_ORIGINS` | Optional comma-separated allowlist of browser origins for the API Gateway. Empty by default. |
 | `N8N_ENCRYPTION_KEY` | 32-character encryption key for n8n credentials storage. |
 
 ---

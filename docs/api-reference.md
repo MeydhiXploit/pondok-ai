@@ -12,11 +12,14 @@ http://localhost:8000
 ---
 
 ## Authentication
-When configured with `API_SECRET_KEY`, include the authorization header:
+All `/v1/*` endpoints require the `API_SECRET_KEY` generated during `local-ai-stack init`:
 ```http
 Authorization: Bearer <your-secret-key>
 ```
-*(Optional by default for local single-user developer convenience)*
+
+Set an application-specific environment variable such as `LOCAL_AI_API_KEY` to that value instead of hard-coding it. `/health` remains unauthenticated for Docker health checks.
+
+The gateway accepts `Host` headers for `localhost`, `127.0.0.1`, and the internal Docker service name `api` only. Browser access is disabled by default; set `CORS_ORIGINS` to a comma-separated allowlist of complete origins when it is needed.
 
 ---
 
@@ -106,7 +109,7 @@ Generate dense vector embeddings using local embedding models (e.g., `nomic-embe
 ---
 
 ### 3. List Models
-**`GET /v1/models`** or **`GET /models`**
+**`GET /v1/models`**
 
 Lists all models currently pulled and available in Ollama.
 

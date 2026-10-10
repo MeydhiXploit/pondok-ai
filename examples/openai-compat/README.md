@@ -14,6 +14,7 @@ This example demonstrates how any existing application using the official `opena
    ```bash
    npx local-ai-stack model install llama3.2:3b
    ```
+3. Set `LOCAL_AI_API_KEY` to the generated `API_SECRET_KEY` for the stack before running the example.
 
 ---
 
@@ -22,6 +23,9 @@ This example demonstrates how any existing application using the official `opena
 ```bash
 # Install dependencies
 npm install
+
+# Provide the gateway credential
+export LOCAL_AI_API_KEY='<your API_SECRET_KEY>'
 
 # Run the script
 npm start

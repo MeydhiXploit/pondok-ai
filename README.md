@@ -152,9 +152,12 @@ npx local-ai-stack model install llama3.2:3b
 
 The API Gateway provides drop-in OpenAI REST endpoints:
 
+Set `LOCAL_AI_API_KEY` to the generated `API_SECRET_KEY` before calling a `/v1/*` endpoint.
+
 ```bash
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $LOCAL_AI_API_KEY" \
   -d '{
     "model": "llama3.2:3b",
     "messages": [
@@ -167,9 +170,14 @@ curl http://localhost:8000/v1/chat/completions \
 ```typescript
 import OpenAI from 'openai';
 
+const apiKey = process.env.LOCAL_AI_API_KEY;
+if (!apiKey) {
+  throw new Error('Set LOCAL_AI_API_KEY to your generated API_SECRET_KEY.');
+}
+
 const openai = new OpenAI({
   baseURL: 'http://localhost:8000/v1',
-  apiKey: 'unused', // Not required locally
+  apiKey,
 });
 
 const completion = await openai.chat.completions.create({
