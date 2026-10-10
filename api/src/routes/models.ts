@@ -1,5 +1,6 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createOpenAiError } from '../errors.js';
+import { createUpstreamFailure, createUpstreamRequestContext } from '../upstream.js';
 
 interface OllamaModel {
   name: string;
@@ -16,9 +17,17 @@ interface OllamaModel {
 
 export async function modelsRoute(app: FastifyInstance): Promise<void> {
   // OpenAI-compatible models endpoint
-  app.get('/v1/models', async (_request, reply) => {
+  app.get('/v1/models', async (request: FastifyRequest, reply: FastifyReply) => {
+    const upstream = createUpstreamRequestContext(
+      request,
+      reply,
+      app.config.ollamaRequestTimeoutMs,
+    );
+
     try {
-      const response = await fetch(`${app.config.ollamaBaseUrl}/api/tags`);
+      const response = await fetch(`${app.config.ollamaBaseUrl}/api/tags`, {
+        signal: upstream.signal,
+      });
 
       if (!response.ok) {
         return reply
@@ -49,17 +58,33 @@ export async function modelsRoute(app: FastifyInstance): Promise<void> {
         data: models,
       });
     } catch (error) {
-      app.log.error(error, 'Models list error');
-      return reply
-        .status(502)
-        .send(createOpenAiError('Failed to connect to Ollama', 'upstream_error', 'upstream_error'));
+      if (!upstream.didClientDisconnect()) {
+        app.log.error(error, 'Models list error');
+      }
+
+      if (upstream.didClientDisconnect()) {
+        return;
+      }
+
+      const failure = createUpstreamFailure(upstream, 'Failed to connect to Ollama');
+      return reply.status(failure.statusCode).send(failure.body);
+    } finally {
+      upstream.cleanup();
     }
   });
 
   // Direct models list (simpler format)
-  app.get('/models', async (_request, reply) => {
+  app.get('/models', async (request: FastifyRequest, reply: FastifyReply) => {
+    const upstream = createUpstreamRequestContext(
+      request,
+      reply,
+      app.config.ollamaRequestTimeoutMs,
+    );
+
     try {
-      const response = await fetch(`${app.config.ollamaBaseUrl}/api/tags`);
+      const response = await fetch(`${app.config.ollamaBaseUrl}/api/tags`, {
+        signal: upstream.signal,
+      });
 
       if (!response.ok) {
         return reply
@@ -83,10 +108,18 @@ export async function modelsRoute(app: FastifyInstance): Promise<void> {
         })),
       });
     } catch (error) {
-      app.log.error(error, 'Models list error');
-      return reply
-        .status(502)
-        .send(createOpenAiError('Failed to connect to Ollama', 'upstream_error', 'upstream_error'));
+      if (!upstream.didClientDisconnect()) {
+        app.log.error(error, 'Models list error');
+      }
+
+      if (upstream.didClientDisconnect()) {
+        return;
+      }
+
+      const failure = createUpstreamFailure(upstream, 'Failed to connect to Ollama');
+      return reply.status(failure.statusCode).send(failure.body);
+    } finally {
+      upstream.cleanup();
     }
   });
 }

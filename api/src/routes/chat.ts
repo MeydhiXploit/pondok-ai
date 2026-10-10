@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createOpenAiError } from '../errors.js';
+import { createUpstreamFailure, createUpstreamRequestContext } from '../upstream.js';
 
 interface ChatCompletionRequest {
   model: string;
@@ -58,6 +59,13 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
         },
       };
 
+      const upstream = createUpstreamRequestContext(
+        request,
+        reply,
+        app.config.ollamaRequestTimeoutMs,
+      );
+      let sseStarted = false;
+
       try {
         if (stream) {
           // Streaming response
@@ -65,6 +73,7 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...ollamaPayload, stream: true }),
+            signal: upstream.signal,
           });
 
           if (!response.ok) {
@@ -76,18 +85,20 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
               );
           }
 
-          reply.raw.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          });
-
           const reader = response.body?.getReader();
           if (!reader) {
             return reply
               .status(500)
               .send(createOpenAiError('No response body', 'upstream_error', 'upstream_error'));
           }
+
+          reply.hijack();
+          reply.raw.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          });
+          sseStarted = true;
 
           const decoder = new TextDecoder();
           const id = `chatcmpl-${Date.now()}`;
@@ -130,13 +141,18 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
             }
           }
 
-          reply.raw.end();
+          if (!upstream.didClientDisconnect()) {
+            reply.raw.end();
+          }
+
+          return reply;
         } else {
           // Non-streaming response
           const response = await fetch(ollamaUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(ollamaPayload),
+            signal: upstream.signal,
           });
 
           if (!response.ok) {
@@ -180,16 +196,30 @@ export async function chatCompletionsRoute(app: FastifyInstance): Promise<void> 
           return reply.send(completion);
         }
       } catch (error) {
-        app.log.error(error, 'Chat completion error');
-        return reply
-          .status(502)
-          .send(
-            createOpenAiError(
-              'Failed to connect to Ollama. Make sure the model is running.',
-              'upstream_error',
-              'upstream_error',
-            ),
-          );
+        if (!upstream.didClientDisconnect()) {
+          app.log.error(error, 'Chat completion error');
+        }
+
+        if (upstream.didClientDisconnect()) {
+          return;
+        }
+
+        const failure = createUpstreamFailure(
+          upstream,
+          'Failed to connect to Ollama. Make sure the model is running.',
+        );
+
+        if (sseStarted) {
+          if (!reply.raw.destroyed && !reply.raw.writableEnded) {
+            reply.raw.write(`data: ${JSON.stringify(failure.body)}\n\n`);
+            reply.raw.end();
+          }
+          return reply;
+        }
+
+        return reply.status(failure.statusCode).send(failure.body);
+      } finally {
+        upstream.cleanup();
       }
     },
   );

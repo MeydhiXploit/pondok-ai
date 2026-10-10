@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createOpenAiError } from '../errors.js';
+import { createUpstreamFailure, createUpstreamRequestContext } from '../upstream.js';
 
 interface EmbeddingRequest {
   model: string;
@@ -26,6 +27,11 @@ export async function embeddingsRoute(app: FastifyInstance): Promise<void> {
     async (request: FastifyRequest<{ Body: EmbeddingRequest }>, reply: FastifyReply) => {
       const { model, input } = request.body;
       const inputs = Array.isArray(input) ? input : [input];
+      const upstream = createUpstreamRequestContext(
+        request,
+        reply,
+        app.config.ollamaRequestTimeoutMs,
+      );
 
       try {
         const embeddingsData = await Promise.all(
@@ -33,6 +39,7 @@ export async function embeddingsRoute(app: FastifyInstance): Promise<void> {
             const response = await fetch(`${app.config.ollamaBaseUrl}/api/embeddings`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              signal: upstream.signal,
               body: JSON.stringify({
                 model,
                 prompt: text,
@@ -63,16 +70,21 @@ export async function embeddingsRoute(app: FastifyInstance): Promise<void> {
           },
         });
       } catch (error) {
-        app.log.error(error, 'Embeddings generation error');
-        return reply
-          .status(502)
-          .send(
-            createOpenAiError(
-              error instanceof Error ? error.message : 'Failed to generate embeddings',
-              'upstream_error',
-              'upstream_error',
-            ),
-          );
+        if (!upstream.didClientDisconnect()) {
+          app.log.error(error, 'Embeddings generation error');
+        }
+
+        if (upstream.didClientDisconnect()) {
+          return;
+        }
+
+        const failure = createUpstreamFailure(
+          upstream,
+          error instanceof Error ? error.message : 'Failed to generate embeddings',
+        );
+        return reply.status(failure.statusCode).send(failure.body);
+      } finally {
+        upstream.cleanup();
       }
     },
   );

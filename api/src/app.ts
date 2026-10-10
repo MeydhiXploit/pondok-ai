@@ -7,6 +7,7 @@ import { embeddingsRoute } from './routes/embeddings.js';
 import { healthRoute } from './routes/health.js';
 import { modelsRoute } from './routes/models.js';
 import { statusRoute } from './routes/status.js';
+import { DEFAULT_OLLAMA_REQUEST_TIMEOUT_MS } from './upstream.js';
 
 const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1', 'api']);
 
@@ -15,6 +16,7 @@ export interface GatewayOptions {
   corsOrigins?: string;
   logger?: boolean;
   ollamaBaseUrl?: string;
+  ollamaRequestTimeoutMs?: number;
   qdrantUrl?: string;
 }
 
@@ -51,6 +53,12 @@ function hasValidBearerToken(authorization: string | undefined, expectedSecret: 
   );
 }
 
+function getTimeoutMs(value: number | undefined): number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+    ? value
+    : DEFAULT_OLLAMA_REQUEST_TIMEOUT_MS;
+}
+
 export async function buildApp(options: GatewayOptions = {}): Promise<FastifyInstance> {
   const corsOrigins = parseCorsOrigins(options.corsOrigins ?? '');
   const app = Fastify({
@@ -60,12 +68,13 @@ export async function buildApp(options: GatewayOptions = {}): Promise<FastifyIns
         : {
             level: process.env.LOG_LEVEL ?? 'info',
           },
-    requestTimeout: 120000, // 2 minutes for LLM responses
+    requestTimeout: DEFAULT_OLLAMA_REQUEST_TIMEOUT_MS,
     bodyLimit: 10 * 1024 * 1024, // 10MB
   });
 
   app.decorate('config', {
     ollamaBaseUrl: options.ollamaBaseUrl ?? process.env.OLLAMA_BASE_URL ?? 'http://ollama:11434',
+    ollamaRequestTimeoutMs: getTimeoutMs(options.ollamaRequestTimeoutMs),
     qdrantUrl: options.qdrantUrl ?? process.env.QDRANT_URL ?? '',
     apiSecretKey: options.apiSecretKey ?? process.env.API_SECRET_KEY ?? '',
   });
@@ -147,6 +156,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     config: {
       ollamaBaseUrl: string;
+      ollamaRequestTimeoutMs: number;
       qdrantUrl: string;
       apiSecretKey: string;
     };

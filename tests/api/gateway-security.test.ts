@@ -80,7 +80,10 @@ describe('API gateway security', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith('http://ollama.test/api/tags');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://ollama.test/api/tags',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('keeps /health available without an API key', async () => {
