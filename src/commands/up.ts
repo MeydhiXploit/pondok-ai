@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import ora from 'ora';
 import { ConfigManager } from '../config/manager.js';
+import { findInvalidRequiredSecrets } from '../config/secrets.js';
 import { DockerClient } from '../docker/client.js';
 import { showBanner, showServiceUrls, showError } from '../cli/ui.js';
 
@@ -34,6 +35,15 @@ async function runUp(options: UpOptions): Promise<void> {
     showError(
       'Stack not initialized.',
       'Run "local-ai-stack init" first to create a configuration.',
+    );
+    process.exit(1);
+  }
+
+  const invalidSecrets = findInvalidRequiredSecrets(configManager.loadEnv());
+  if (invalidSecrets.length > 0) {
+    showError(
+      `Invalid required secret value(s): ${invalidSecrets.join(', ')}`,
+      'Run "local-ai-stack init" to generate secure credentials before starting the stack.',
     );
     process.exit(1);
   }
