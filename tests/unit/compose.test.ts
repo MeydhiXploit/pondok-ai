@@ -122,6 +122,18 @@ describe('Docker Compose Generator', () => {
       expect(services.api.image).toBeUndefined();
     });
 
+    it('should pass configurable API Gateway rate-limit settings', () => {
+      const config = getDefaultConfig('standard');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, { environment?: Record<string, string> }>;
+
+      expect(services.api.environment).toMatchObject({
+        RATE_LIMIT_MAX_REQUESTS: '${RATE_LIMIT_MAX_REQUESTS:-120}',
+        RATE_LIMIT_WINDOW_MS: '${RATE_LIMIT_WINDOW_MS:-60000}',
+      });
+    });
+
     it('should use the local gateway build for the legacy default image', () => {
       const config = getDefaultConfig('standard');
       config.services.api.image = 'local-ai-stack-api:latest';

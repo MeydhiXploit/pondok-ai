@@ -191,6 +191,8 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
           : '',
         API_SECRET_KEY: '${API_SECRET_KEY}',
         CORS_ORIGINS: '${CORS_ORIGINS:-}',
+        RATE_LIMIT_MAX_REQUESTS: '${RATE_LIMIT_MAX_REQUESTS:-120}',
+        RATE_LIMIT_WINDOW_MS: '${RATE_LIMIT_WINDOW_MS:-60000}',
         NODE_ENV: 'production',
       },
       networks: ['local-ai-network'],

@@ -7,6 +7,7 @@ import { embeddingsRoute } from './routes/embeddings.js';
 import { healthRoute } from './routes/health.js';
 import { modelsRoute } from './routes/models.js';
 import { statusRoute } from './routes/status.js';
+import { FixedWindowRateLimiter, getRateLimitConfig, rateLimitKey } from './rate-limit.js';
 import { DEFAULT_OLLAMA_REQUEST_TIMEOUT_MS } from './upstream.js';
 
 const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1', 'api']);
@@ -18,6 +19,8 @@ export interface GatewayOptions {
   ollamaBaseUrl?: string;
   ollamaRequestTimeoutMs?: number;
   qdrantUrl?: string;
+  rateLimitMaxRequests?: number;
+  rateLimitWindowMs?: number;
 }
 
 function parseCorsOrigins(value: string): string[] {
@@ -61,6 +64,13 @@ function getTimeoutMs(value: number | undefined): number {
 
 export async function buildApp(options: GatewayOptions = {}): Promise<FastifyInstance> {
   const corsOrigins = parseCorsOrigins(options.corsOrigins ?? process.env.CORS_ORIGINS ?? '');
+  const rateLimitConfig = getRateLimitConfig(process.env, {
+    ...(options.rateLimitMaxRequests !== undefined && {
+      maxRequests: options.rateLimitMaxRequests,
+    }),
+    ...(options.rateLimitWindowMs !== undefined && { windowMs: options.rateLimitWindowMs }),
+  });
+  const rateLimiter = new FixedWindowRateLimiter(rateLimitConfig);
   const app = Fastify({
     logger:
       options.logger === false
@@ -105,6 +115,20 @@ export async function buildApp(options: GatewayOptions = {}): Promise<FastifyIns
             'Invalid or missing API key',
             'authentication_error',
             'invalid_api_key',
+          ),
+        );
+    }
+
+    const decision = rateLimiter.consume(rateLimitKey(request.ip, request.headers.authorization));
+    if (!decision.allowed) {
+      reply.header('Retry-After', String(decision.retryAfterSeconds));
+      return reply
+        .status(429)
+        .send(
+          createOpenAiError(
+            'Rate limit exceeded. Try again later.',
+            'rate_limit_error',
+            'rate_limit_exceeded',
           ),
         );
     }
