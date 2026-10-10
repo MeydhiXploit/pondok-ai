@@ -72,6 +72,29 @@ describe('Docker Compose Generator', () => {
       expect(services.api.depends_on).toHaveProperty('postgres');
     });
 
+    it('should build the bundled API gateway locally', () => {
+      const config = getDefaultConfig('standard');
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<
+        string,
+        { build?: { context: string }; image?: string }
+      >;
+
+      expect(services.api.build).toEqual({ context: './api' });
+      expect(services.api.image).toBeUndefined();
+    });
+
+    it('should use the local gateway build for the legacy default image', () => {
+      const config = getDefaultConfig('standard');
+      config.services.api.image = 'local-ai-stack-api:latest';
+      const yaml = generateComposeFile(config, mockEnv);
+      const parsed = yamlLoad(yaml) as Record<string, unknown>;
+      const services = parsed.services as Record<string, { build?: { context: string } }>;
+
+      expect(services.api.build).toEqual({ context: './api' });
+    });
+
     it('should include health checks', () => {
       const config = getDefaultConfig('standard');
       const yaml = generateComposeFile(config, mockEnv);

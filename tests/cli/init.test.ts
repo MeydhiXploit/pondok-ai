@@ -72,6 +72,9 @@ describe('CLI Init Integration', () => {
     expect(config.services.api.enabled).toBe(true);
     expect(config.services.n8n.enabled).toBe(false);
 
+    expect(existsSync(join(testDir, '.local-ai-stack', 'api', 'Dockerfile'))).toBe(true);
+    expect(existsSync(join(testDir, '.local-ai-stack', 'api', 'src', 'index.ts'))).toBe(true);
+
     // .env should contain secrets
     const envContent = readFileSync(join(testDir, '.local-ai-stack', '.env'), 'utf-8');
     expect(envContent).toContain('POSTGRES_PASSWORD=');

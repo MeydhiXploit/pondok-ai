@@ -1,8 +1,15 @@
 import { dump as yamlDump } from 'js-yaml';
+import { LEGACY_DEFAULT_API_IMAGE } from '../config/defaults.js';
 import { GeneratedEnv, StackConfig } from '../config/schema.js';
 
+interface ComposeBuild {
+  context: string;
+  dockerfile?: string;
+}
+
 interface ComposeService {
-  image: string;
+  image?: string;
+  build?: ComposeBuild;
   container_name: string;
   restart: string;
   ports?: string[];
@@ -171,8 +178,8 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
       apiDependsOn.qdrant = { condition: 'service_healthy' };
     }
 
-    compose.services.api = {
-      image: config.services.api.image ?? 'local-ai-stack-api:latest',
+    const apiService: ComposeService = {
+      build: { context: './api' },
       container_name: `${config.projectName}-api`,
       restart: 'unless-stopped',
       ports: [`${bind}:${config.services.api.port}:8000`],
@@ -195,6 +202,13 @@ export function generateComposeFile(config: StackConfig, _env?: GeneratedEnv): s
         retries: 3,
       },
     };
+
+    if (config.services.api.image && config.services.api.image !== LEGACY_DEFAULT_API_IMAGE) {
+      delete apiService.build;
+      apiService.image = config.services.api.image;
+    }
+
+    compose.services.api = apiService;
   }
 
   // n8n

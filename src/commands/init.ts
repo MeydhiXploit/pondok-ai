@@ -1,9 +1,11 @@
 import { Command } from 'commander';
+import { join } from 'node:path';
 import { ConfigManager } from '../config/manager.js';
 import { Preset } from '../config/schema.js';
 import { PRESET_DESCRIPTIONS } from '../config/defaults.js';
 import { detectSystem } from '../system/detect.js';
 import { checkRequirements, hasErrors } from '../system/requirements.js';
+import { copyGatewayBuildContext } from '../system/resources.js';
 import { generateComposeFile } from '../docker/compose.js';
 import { showBanner, showRequirements, showConfig, showError, showSuccess } from '../cli/ui.js';
 import { logger } from '../utils/logger.js';
@@ -136,6 +138,11 @@ async function runInit(options: InitOptions): Promise<void> {
   // Generate .env with secure credentials
   configManager.generateEnv();
   logger.success('Secure credentials generated');
+
+  if (config.services.api.enabled) {
+    copyGatewayBuildContext(join(configManager.getStackDir(), 'api'));
+    logger.success('API Gateway build context prepared');
+  }
 
   // Generate Docker Compose file
   const env = configManager.loadEnv();

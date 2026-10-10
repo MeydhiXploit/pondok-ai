@@ -8,9 +8,10 @@ export const DEFAULT_IMAGES = {
   openwebui: 'ghcr.io/open-webui/open-webui:main',
   postgres: 'postgres:16-alpine',
   qdrant: 'qdrant/qdrant:latest',
-  api: 'local-ai-stack-api:latest',
   n8n: 'n8nio/n8n:latest',
 } as const;
+
+export const LEGACY_DEFAULT_API_IMAGE = 'local-ai-stack-api:latest';
 
 /**
  * Default port mappings for each service.
@@ -79,7 +80,6 @@ export function getDefaultConfig(preset: Preset): StackConfig {
       api: {
         enabled: enabledServices.includes('api'),
         port: DEFAULT_PORTS.api,
-        image: DEFAULT_IMAGES.api,
       },
       n8n: {
         enabled: enabledServices.includes('n8n'),
