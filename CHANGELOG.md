@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-11
+
 ### Added
 - Configurable in-memory, per-source-IP rate limiting for authenticated API Gateway `/v1/*` requests.
 
