@@ -34,6 +34,10 @@ jobs:
       - name: Build CLI
         run: npm run build
 
+      - name: Install API Gateway dependencies
+        run: npm ci
+        working-directory: api
+
       - name: Run Tests
         run: npm test
 
@@ -42,3 +46,205 @@ jobs:
           cd api
           npm ci
           npm run build
+
+  e2e-smoke:
+    name: E2E Smoke (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies and build CLI
+        run: |
+          npm ci
+          npm run build
+
+      - name: Initialize stack
+        run: |
+          WORKDIR="$(mktemp -d)"
+          echo "WORKDIR=$WORKDIR" >> "$GITHUB_ENV"
+          node dist/index.js init --preset standard --yes --skip-checks --dir "$WORKDIR"
+
+      - name: Inject rate-limit override and mask secrets
+        run: |
+          ENV_FILE="$WORKDIR/.local-ai-stack/.env"
+
+          # Mask only values whose key ends with PASSWORD, KEY, SECRET, or TOKEN
+          while IFS='=' read -r key value; do
+            [ -z "$key" ] && continue
+            [[ "$key" == \#* ]] && continue
+            case "$key" in
+              *PASSWORD|*KEY|*SECRET|*TOKEN)
+                echo "::add-mask::$value"
+                ;;
+            esac
+          done < "$ENV_FILE"
+
+          # Extract API_SECRET_KEY for later use (already masked above)
+          API_SECRET_KEY=$(grep '^API_SECRET_KEY=' "$ENV_FILE" | cut -d'=' -f2-)
+          echo "API_SECRET_KEY=$API_SECRET_KEY" >> "$GITHUB_ENV"
+
+          # Append rate-limit override
+          echo 'RATE_LIMIT_MAX_REQUESTS=3' >> "$ENV_FILE"
+
+      - name: Probe healthcheck tools in compose images
+        continue-on-error: true
+        run: node .github/scripts/probe-images.js "$WORKDIR/.local-ai-stack/docker-compose.yml" "$ENV_FILE"
+
+      - name: Start stack
+        run: node dist/index.js up --dir "$WORKDIR" --no-healthcheck
+
+      - name: Wait for gateway /health
+        run: |
+          GATEWAY_URL="http://localhost:8000"
+          echo "Waiting for $GATEWAY_URL/health ..."
+          for i in $(seq 1 120); do
+            if curl -sf "$GATEWAY_URL/health" > /dev/null 2>&1; then
+              echo "Gateway healthy after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Gateway /health did not respond within 120 s"
+          exit 1
+
+      - name: 'Assert: no Authorization → 401'
+        run: |
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Host: localhost:8000' \
+            http://localhost:8000/v1/models)
+          echo "Status without auth: $STATUS"
+          if [ "$STATUS" != "401" ]; then
+            echo "::error::Expected 401, got $STATUS"
+            exit 1
+          fi
+
+      - name: 'Assert: auth + rate limit (up to 6 requests)'
+        run: |
+          GATEWAY="http://localhost:8000/v1/models"
+          FIRST_429=""
+
+          for i in $(seq 1 6); do
+            RESP=$(curl -s -w '\n%{http_code}' \
+              -H "Authorization: Bearer $API_SECRET_KEY" \
+              -H 'Host: localhost:8000' \
+              "$GATEWAY")
+            STATUS=$(echo "$RESP" | tail -1)
+            BODY=$(echo "$RESP" | sed '$d')
+            echo "Request $i: HTTP $STATUS"
+
+            # First 3 requests must NOT be 429
+            if [ "$i" -le 3 ] && [ "$STATUS" = "429" ]; then
+              echo "::error::Request $i got 429 too early (limit is 3)"
+              exit 1
+            fi
+
+            # Any authenticated request must not be 401
+            if [ "$STATUS" = "401" ]; then
+              echo "::error::Request $i got 401 with valid Bearer token"
+              exit 1
+            fi
+
+            if [ "$STATUS" = "429" ] && [ -z "$FIRST_429" ]; then
+              FIRST_429="$i"
+              SAVED_BODY="$BODY"
+            fi
+          done
+
+          # 429 must have appeared by request 5 at the latest
+          if [ -z "$FIRST_429" ]; then
+            echo "::error::429 never appeared in 6 requests"
+            exit 1
+          fi
+          if [ "$FIRST_429" -gt 5 ]; then
+            echo "::error::429 first appeared at request $FIRST_429 (expected ≤ 5)"
+            exit 1
+          fi
+          echo "First 429 at request $FIRST_429"
+
+          # Retry-After header must be present on a 429 response
+          RETRY_AFTER=$(curl -s -I \
+            -H "Authorization: Bearer $API_SECRET_KEY" \
+            -H 'Host: localhost:8000' \
+            "$GATEWAY" | grep -i '^retry-after:' | tr -d '\r')
+          echo "Retry-After: $RETRY_AFTER"
+          if [ -z "$RETRY_AFTER" ]; then
+            echo "::error::Retry-After header missing on 429"
+            exit 1
+          fi
+
+          # error.code must be rate_limit_exceeded
+          CODE=$(echo "$SAVED_BODY" | node -e "
+            let d='';
+            process.stdin.on('data',c=>d+=c);
+            process.stdin.on('end',()=>{
+              try { console.log(JSON.parse(d).error.code); }
+              catch { console.log('PARSE_ERROR'); }
+            });
+          ")
+          echo "error.code: $CODE"
+          if [ "$CODE" != "rate_limit_exceeded" ]; then
+            echo "::error::Expected error.code=rate_limit_exceeded, got $CODE"
+            exit 1
+          fi
+
+      - name: 'Assert: /health still returns 200'
+        run: |
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Host: localhost:8000' \
+            http://localhost:8000/health)
+          echo "/health status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::/health expected 200, got $STATUS"
+            exit 1
+          fi
+
+      - name: Dump container state on failure
+        if: failure()
+        run: |
+          COMPOSE_FILE="$WORKDIR/.local-ai-stack/docker-compose.yml"
+          ENV_FILE="$WORKDIR/.local-ai-stack/.env"
+          if [ -f "$COMPOSE_FILE" ]; then
+            echo "=== docker compose ps ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps 2>&1 || true
+            echo ""
+            echo "=== docker inspect health for all local-ai-stack-* containers ==="
+            CONTAINERS=$(docker ps -a --format '{{.Names}}' | grep '^local-ai-stack' || true)
+            for c in $CONTAINERS; do
+              echo "--- Container: $c Health State ---"
+              docker inspect --format '{{json .State.Health}}' "$c" 2>&1 \
+                | grep -v -E '(PASSWORD|KEY|SECRET|TOKEN)=' || true
+            done
+            echo ""
+            echo "=== docker logs local-ai-stack-ollama (last 50 lines) ==="
+            docker logs --tail 50 local-ai-stack-ollama 2>&1 \
+              | grep -v -E '(PASSWORD|KEY|SECRET|TOKEN)=' || true
+            echo ""
+            echo "=== docker logs local-ai-stack-qdrant (last 50 lines) ==="
+            docker logs --tail 50 local-ai-stack-qdrant 2>&1 \
+              | grep -v -E '(PASSWORD|KEY|SECRET|TOKEN)=' || true
+            echo ""
+            echo "=== docker compose logs api (last 100 lines) ==="
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail=100 api 2>&1 \
+              | grep -v -E '(PASSWORD|KEY|SECRET|TOKEN)=' || true
+          fi
+
+      - name: Tear down stack
+        if: always()
+        run: |
+          if [ -n "$WORKDIR" ]; then
+            node dist/index.js down --dir "$WORKDIR" --force || true
+          fi
