@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-11
+
 ### Fixed
 - Replaced missing `curl` in Ollama container health check with `ollama list` (`["CMD", "ollama", "list"]`) to prevent services from failing startup due to unhealthy status.
 - Replaced missing `curl` in Qdrant container health check with bash TCP socket probe (`["CMD", "bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]`). Note that this health check only verifies that the TCP port is open and listening.
