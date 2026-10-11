@@ -204,6 +204,8 @@ console.log(completion.choices[0].message.content);
 - [`examples/rag-example/`](./examples/rag-example): End-to-end RAG pipeline using Qdrant vector database and Ollama embeddings.
 
 ---
+## Tested in CI
+Every pull request runs an end-to-end test on GitHub Actions (amd64 and arm64): init, up, pull a small model (smollm:135m, 91 MB), list it via /v1/models, a non-streaming /v1/chat/completions, rate limiting (401 and 429), and a check that Open WebUI is reachable. Not covered yet: streaming responses, embeddings, GPU, and macOS/Windows hosts.
 
 ## Documentation
 
